@@ -18,7 +18,7 @@ fn main() {
 
     let mut output = String::new();
     if let Some(strings) = cli.strings {
-        output = process(strings);
+        output = process_strings(strings);
     } else if let Some(file_path) = cli.file {
         let bytes = File::open(file_path).unwrap().bytes();
         output = bytes_to_string(bytes.into_iter().filter_map(|b| b.ok()));
@@ -27,7 +27,7 @@ fn main() {
     println!("{output}");
 }
 
-fn process(vec: Vec<String>) -> String {
+fn process_strings(vec: Vec<String>) -> String {
     vec.into_iter()
         .map(|t| bytes_to_string(t.into_bytes().into_iter()))
         .collect::<Vec<String>>()
