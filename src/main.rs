@@ -2,15 +2,28 @@ use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
+    // Directionality of conversion
+    mode: Mode,
+
+    // Input strings
     strings: Option<Vec<String>>,
 
+    // Input file path
     #[arg(short, long, value_name = "FILE")]
     file: Option<PathBuf>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum Mode {
+    // Converts to Hexidecimal from ASCII (technically UTF8)
+    ToHex,
+    // Converts to ASCII (technically UTF8) from Hexidecimal
+    ToASCII,
 }
 
 fn main() {
