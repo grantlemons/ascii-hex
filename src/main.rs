@@ -46,6 +46,7 @@ fn main() {
                 output = process_to_hex(strings, !cli.compact, cli.lower);
             } else if let Some(file_path) = cli.file {
                 let bytes = File::open(file_path).unwrap().bytes();
+
                 output = bytes_to_string(
                     bytes.into_iter().filter_map(|b| b.ok()),
                     !cli.compact,
@@ -53,21 +54,24 @@ fn main() {
                 );
             }
         }
+
         Mode::ToASCII => {
             if let Some(strings) = cli.strings {
                 output = process_to_ascii(strings.into_iter());
             } else if let Some(file_path) = cli.file {
                 let mut contents = String::new();
+
                 File::open(file_path)
                     .unwrap()
                     .read_to_string(&mut contents)
                     .unwrap();
+
                 let ascii_lines: Vec<String> = contents
                     .split('\n')
                     .filter(|l| !l.is_empty())
                     .map(|s| String::from_str(s).unwrap())
                     .collect();
-                println!("{:?}", ascii_lines);
+
                 output = process_to_ascii(ascii_lines.into_iter());
             }
         }
@@ -95,7 +99,7 @@ fn extract_pairs(input: String) -> Vec<String> {
         .filter(|c| !c.is_whitespace())
         .collect::<Vec<_>>()
         .chunks(2)
-        .map(|c| String::from_iter(c))
+        .map(String::from_iter)
         .collect()
 }
 
@@ -116,8 +120,5 @@ fn bytes_to_string<T: Iterator<Item = u8>>(bytes: T, spaces: bool, lower: bool) 
         }
     };
 
-    bytes
-        .map(|b| format_fn(b))
-        .collect::<Vec<_>>()
-        .join(seperator)
+    bytes.map(format_fn).collect::<Vec<_>>().join(seperator)
 }
