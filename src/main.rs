@@ -1,7 +1,8 @@
-use std::io::Read;
+use std::io::{stdin, Read};
 use std::path::PathBuf;
 use std::{fs::File, str::FromStr};
 
+use anyhow::Result;
 use clap::{Parser, ValueEnum};
 
 #[derive(Parser, Debug)]
@@ -35,53 +36,74 @@ enum Mode {
     ToASCII,
 }
 
-fn main() {
+fn main() -> Result<()> {
     let cli = Args::parse();
-
-    let mut output = String::new();
+    let output;
 
     match cli.mode {
         Mode::ToHex => {
             if let Some(strings) = cli.strings {
                 output = process_to_hex(strings, !cli.compact, cli.lower);
             } else if let Some(file_path) = cli.file {
-                let bytes = File::open(file_path).unwrap().bytes();
+                let mut contents = Vec::<u8>::new();
 
-                output = bytes_to_string(
-                    bytes.into_iter().filter_map(|b| b.ok()),
-                    !cli.compact,
-                    cli.lower,
-                );
+                if file_path == PathBuf::from("-") {
+                    stdin().lock().read_to_end(&mut contents)?
+                } else {
+                    File::open(file_path).unwrap().read_to_end(&mut contents)?
+                };
+
+                output = bytes_to_string(contents, !cli.compact, cli.lower);
+            } else {
+                let mut contents = Vec::<u8>::new();
+                stdin().lock().read_to_end(&mut contents)?;
+
+                output = bytes_to_string(contents, !cli.compact, cli.lower);
             }
         }
 
         Mode::ToASCII => {
+            let lines: Vec<String>;
+
             if let Some(strings) = cli.strings {
-                output = process_to_ascii(strings.into_iter());
+                lines = strings;
             } else if let Some(file_path) = cli.file {
                 let mut contents = String::new();
 
-                File::open(file_path)
-                    .unwrap()
-                    .read_to_string(&mut contents)
-                    .unwrap();
+                if file_path == PathBuf::from("-") {
+                    stdin().lock().read_to_string(&mut contents)?
+                } else {
+                    File::open(file_path)
+                        .unwrap()
+                        .read_to_string(&mut contents)?
+                };
 
-                let ascii_lines: Vec<String> = contents
+                lines = contents
                     .split('\n')
                     .filter(|l| !l.is_empty())
                     .map(|s| String::from_str(s).unwrap())
                     .collect();
+            } else {
+                let mut contents = String::new();
+                stdin().lock().read_to_string(&mut contents)?;
 
-                output = process_to_ascii(ascii_lines.into_iter());
+                lines = contents
+                    .split('\n')
+                    .filter(|l| !l.is_empty())
+                    .map(|s| String::from_str(s).unwrap())
+                    .collect();
             }
+            output = process_to_ascii(lines);
         }
     }
-
     println!("{output}");
+
+    Ok(())
 }
 
-fn process_to_ascii<T: Iterator<Item = String>>(lines: T) -> String {
+fn process_to_ascii<T: IntoIterator<Item = String>>(lines: T) -> String {
     lines
+        .into_iter()
         .map(|l| {
             String::from_iter(
                 extract_pairs(l)
@@ -110,7 +132,7 @@ fn process_to_hex(vec: Vec<String>, spaces: bool, lower: bool) -> String {
         .join("\n")
 }
 
-fn bytes_to_string<T: Iterator<Item = u8>>(bytes: T, spaces: bool, lower: bool) -> String {
+fn bytes_to_string<T: IntoIterator<Item = u8>>(bytes: T, spaces: bool, lower: bool) -> String {
     let seperator = if spaces { " " } else { "" };
     let format_fn = |b| {
         if lower {
@@ -120,5 +142,9 @@ fn bytes_to_string<T: Iterator<Item = u8>>(bytes: T, spaces: bool, lower: bool) 
         }
     };
 
-    bytes.map(format_fn).collect::<Vec<_>>().join(seperator)
+    bytes
+        .into_iter()
+        .map(format_fn)
+        .collect::<Vec<_>>()
+        .join(seperator)
 }
