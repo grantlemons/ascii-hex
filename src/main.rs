@@ -57,6 +57,7 @@ fn main() -> Result<()> {
                     }
                 } else {
                     stdin().lock().read_to_end(&mut contents)?;
+                    contents.pop();
                 }
 
                 output = bytes_to_string(contents, !cli.compact, cli.lower);
