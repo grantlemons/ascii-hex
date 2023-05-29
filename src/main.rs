@@ -36,6 +36,8 @@ enum Mode {
     ToASCII,
 }
 
+const STDIN_PATH: &str = "-";
+
 fn main() -> Result<()> {
     let cli = Args::parse();
     let output;
@@ -44,19 +46,18 @@ fn main() -> Result<()> {
         Mode::ToHex => {
             if let Some(strings) = cli.strings {
                 output = process_to_hex(strings, !cli.compact, cli.lower);
-            } else if let Some(file_path) = cli.file {
-                let mut contents = Vec::<u8>::new();
-
-                if file_path == PathBuf::from("-") {
-                    stdin().lock().read_to_end(&mut contents)?
-                } else {
-                    File::open(file_path).unwrap().read_to_end(&mut contents)?
-                };
-
-                output = bytes_to_string(contents, !cli.compact, cli.lower);
             } else {
                 let mut contents = Vec::<u8>::new();
-                stdin().lock().read_to_end(&mut contents)?;
+
+                if let Some(path) = cli.file {
+                    if path == PathBuf::from(STDIN_PATH) {
+                        stdin().lock().read_to_end(&mut contents)?;
+                    } else {
+                        File::open(path)?.read_to_end(&mut contents)?;
+                    }
+                } else {
+                    stdin().lock().read_to_end(&mut contents)?;
+                }
 
                 output = bytes_to_string(contents, !cli.compact, cli.lower);
             }
@@ -67,25 +68,18 @@ fn main() -> Result<()> {
 
             if let Some(strings) = cli.strings {
                 lines = strings;
-            } else if let Some(file_path) = cli.file {
-                let mut contents = String::new();
-
-                if file_path == PathBuf::from("-") {
-                    stdin().lock().read_to_string(&mut contents)?
-                } else {
-                    File::open(file_path)
-                        .unwrap()
-                        .read_to_string(&mut contents)?
-                };
-
-                lines = contents
-                    .split('\n')
-                    .filter(|l| !l.is_empty())
-                    .map(|s| String::from_str(s).unwrap())
-                    .collect();
             } else {
                 let mut contents = String::new();
-                stdin().lock().read_to_string(&mut contents)?;
+
+                if let Some(path) = cli.file {
+                    if path == PathBuf::from(STDIN_PATH) {
+                        stdin().lock().read_to_string(&mut contents)?;
+                    } else {
+                        File::open(path)?.read_to_string(&mut contents)?;
+                    }
+                } else {
+                    stdin().lock().read_to_string(&mut contents)?;
+                }
 
                 lines = contents
                     .split('\n')
