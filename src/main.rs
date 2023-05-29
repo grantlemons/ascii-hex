@@ -45,7 +45,7 @@ fn main() -> Result<()> {
     match cli.mode {
         Mode::ToHex => {
             if let Some(strings) = cli.strings {
-                output = process_to_hex(strings, !cli.compact, cli.lower);
+                output = strings_to_hex(strings, !cli.compact, cli.lower);
             } else {
                 let mut contents = Vec::<u8>::new();
 
@@ -88,7 +88,7 @@ fn main() -> Result<()> {
                     .map(|s| String::from_str(s).unwrap())
                     .collect();
             }
-            output = process_to_ascii(lines);
+            output = hex_strings_to_ascii(lines);
         }
     }
     println!("{output}");
@@ -96,12 +96,12 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn process_to_ascii<T: IntoIterator<Item = String>>(lines: T) -> String {
+fn hex_strings_to_ascii<T: IntoIterator<Item = String>>(lines: T) -> String {
     lines
         .into_iter()
         .map(|l| {
             String::from_iter(
-                extract_pairs(l)
+                extract_hex_pairs(l)
                     .iter()
                     .map(|c| u8::from_str_radix(c, 16).unwrap() as char),
             )
@@ -110,7 +110,7 @@ fn process_to_ascii<T: IntoIterator<Item = String>>(lines: T) -> String {
         .join("\n")
 }
 
-fn extract_pairs(input: String) -> Vec<String> {
+fn extract_hex_pairs(input: String) -> Vec<String> {
     input
         .chars()
         .filter(|c| !c.is_whitespace())
@@ -120,7 +120,7 @@ fn extract_pairs(input: String) -> Vec<String> {
         .collect()
 }
 
-fn process_to_hex(vec: Vec<String>, spaces: bool, lower: bool) -> String {
+fn strings_to_hex(vec: Vec<String>, spaces: bool, lower: bool) -> String {
     vec.into_iter()
         .map(|t| bytes_to_string(t.into_bytes().into_iter(), spaces, lower))
         .collect::<Vec<_>>()
